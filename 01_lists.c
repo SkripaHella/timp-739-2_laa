@@ -2,253 +2,280 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-typedef struct node {
-    int val;          // значение, которое хранит узел
-    struct node *next;  // ссылка на следующий элемент списка
+typedef struct list
+{
+    struct node *head;
+    struct node *tail;
+} list ;
+
+typedef struct node
+{
+    int val;
+    struct node *next;
+    struct node *prev;
 } node;
 
-typedef struct list {
-    struct node *head;  // начало списка
-} list;
-
-// инициализация пустого списка
-void init(list *l)
+void init(struct list* l)
 {
-    l->head = NULL;
-    return;
+    l -> head = NULL;
+    l -> tail = NULL;
 }
 
-// удалить все элементы из списка
-void clean(list *l)
+void clean(list* l)
 {
-    struct node* Node1;
-    struct node* Node2;
-    Node1 = l->head;
-    while (Node1->next != NULL)
+    node* inter1 = l -> head;
+    node* inter2;
+    if (inter1 == NULL) return;
+    
+    while (inter1 -> next != NULL)
     {
-        Node2 = Node1;
-        Node1 = Node1->next;
-        free(Node2); // освобождение памяти
+        inter2 = inter1;
+        inter1 = inter1 -> next;
+        free(inter2);
     }
-    free(Node1);
-    init(l);
-    return;
+    free(inter1);
+    init(l); // помечаем, что первый и последний элементы - нулевые (для справки)
 }
 
-// проверка на пустоту списка
-int is_empty(list *l)
+bool is_empty(list *l)
 {
-    if (l->head == NULL) return 1;
-    else return 0;
+    return (l->head == NULL);
 }
 
-// поиск элемента по значению. вернуть NULL если эжемент не найден
-node *find(list *l, int value)
+node *find(list *l, int value) 
 {
-    node* Node = l -> head;
-    if(l -> head == NULL)
-        return NULL;
-
-    while(Node -> val != value)
+    node *Node = l -> head;
+    while (Node != NULL && Node->val != value)
     {
         Node = Node -> next;
-        if(Node == NULL)
-            return NULL;
     }
-
+    
     return Node;
 }
 
-// вставка значения в конец списка, вернуть 0 если успешно
 int push_back(list *l, int value)
 {
-    node* tmp2 = l -> head;
-    if (tmp2 != NULL)
-        while (tmp2 -> next != NULL) tmp2 = tmp2 -> next; // нахождение последнего элемента
-
-    if (is_empty(l) == 0)
+    node *Node = l -> tail;
+    l -> tail = malloc(sizeof(node));
+    if (Node == NULL)
     {
-        node* tmp = tmp2;
-        node* Node = (node*)malloc(sizeof(node));
-        tmp -> next = Node;
-        Node -> val = value;
-        Node -> next = NULL;
+        l -> head = l -> tail;
+        l -> tail -> next = NULL;
+        l -> tail -> prev = NULL;
     }
-
     else
     {
-        node* Node = (node*)malloc(sizeof(node));
-        Node -> val = value;
-        Node -> next = NULL;
-        l -> head = Node;
+        Node -> next = l -> tail;
+        l -> tail -> prev = Node;
     }
-
+    l -> tail -> val = value;
+    
     return 0;
 }
 
-// вставка значения в начало списка, вернуть 0 если успешно
 int push_front(list *l, int value)
 {
-    node *Node = (node*)malloc(sizeof(node));
-    Node -> val = value;
-    Node -> next = l -> head;
-    l -> head = Node;
-
+    node *Node = l -> head;
+    l -> head = malloc(sizeof(node));
+    if (Node == NULL)
+    {
+        l -> tail = l -> head;
+        l -> head -> prev = NULL;
+        l -> head -> next = NULL;
+    }
+    else
+    {
+        Node -> prev = l -> head;
+        l -> head -> next = Node;
+    }
+    l -> head -> val = value;
+    
     return 0;
 }
 
-// вставка значения после указанного узла, вернуть 0 если успешно
-int insert_after(node *n, int value)
+int insert_after(list *l, node *n, int value)
 {
-    if(n == NULL)
-        return 1;
-
-    node *Node = (node*)malloc(sizeof(node));
+    node *Node = malloc(sizeof(node));
     Node -> val = value;
     Node -> next = n -> next;
+    Node -> prev = n;
     n -> next = Node;
-
-    return 0;
-}
-
-// удалить первый элемент из списка с указанным значением,
-// вернуть 0 если успешно
-int remove_node(list *l, int value)
-{
-    node *tmp = l -> head;
-    node *Node = NULL;
-
-    if(tmp == NULL)
-        return 1;
-
-    while(tmp -> val != value)
+    if (Node -> next == NULL)
     {
-        if(tmp -> next == NULL)
-            return 1;
-        else
-        {
-            Node = tmp;
-            tmp = tmp -> next;
-        }
-    }
-
-    if(tmp == l -> head)
-    {
-        tmp = l -> head -> next;
-    }
+        l -> tail = Node;
+    } 
     else
     {
-        Node -> next = tmp -> next;
+        Node -> next -> prev = Node;
     }
-    free(tmp);
-
+    
     return 0;
 }
 
-// вывести все значения из списка в прямом порядке через пробел,
-// после окончания вывода перейти на новую строку
-void print(list* l)
+int insert_before(list *l, node *n, int value)
 {
-    if (is_empty(l) == 0)
+    node *Node = malloc(sizeof(node));
+    Node -> val = value;
+    Node -> prev = n -> prev;
+    Node -> next = n;
+    n -> prev = Node;
+    if (Node -> prev == NULL)
     {
-        node* inpt;
-        inpt = l->head;
-        while (inpt != NULL)
-        {
-            printf("%d ", inpt -> val);
-            inpt = inpt -> next;
-        }
+        l -> head = Node;
+    } 
+    else
+    {
+        Node -> prev -> next = Node;
+    }
+    
+    return 0;
+}
+
+int remove_first(list *l, int value)
+{
+    if (l -> head == NULL)
+        return 1;
+        
+    node *Node = find(l, value);
+    if (Node == NULL)
+        return 1;
+        
+    if (l -> head == Node)
+    {
+        l -> head = l -> head -> next;
+        l -> head -> prev = NULL;
+    } 
+    else if (l -> tail == Node)
+    {
+        l -> tail = l -> tail -> prev;
+        l -> tail -> next = NULL;
+    } 
+    else
+    {
+        node *tmp = Node -> prev;
+        tmp -> next = Node -> next;
+        Node -> next -> prev = tmp;
+    }
+    
+    free(Node);
+    
+    return 0;
+}
+
+int remove_last(list *l, int value)
+{
+    if (l -> tail == NULL)
+        return 1;
+        
+    node *Node = find(l, value); //
+    if (Node == NULL)
+        return 1;
+        
+    if (l -> tail == Node)
+    {
+        l -> tail = l -> tail -> prev;
+        l -> tail -> next = NULL;
+    } 
+    else if (l -> head == Node)
+    {
+        l -> head = l -> head -> next;
+        l -> head -> prev = NULL;
+    } 
+    else
+    {
+        node *tmp = Node -> next;
+        tmp -> prev = Node -> prev;
+        Node -> prev -> next = tmp;
+    }
+    
+    free(Node);
+    
+    return 0;
+}
+
+void print(list *l)
+{
+    node *Node = l -> head;
+    while (Node != NULL)
+    {
+        printf("%d ", Node -> val);
+        Node = Node -> next;
     }
     printf("\n");
-
-    return;
 }
 
-node *ind_f(list *l, int ind)
+void print_invers(list *l)
 {
-    if(l -> head == NULL)
-        return NULL;
-
-    node *Node = l -> head;
-    int inc = 0;
-
-    while(inc != ind)
+    node *Node = l -> tail;
+    while (Node != NULL)
     {
-        Node = Node -> next;
-
-        if(Node == NULL)
-            return NULL;
-
-        inc++;
+        printf("%d ", Node -> val);
+        Node = Node -> prev;
     }
-
-    return Node;
+    printf("\n");
 }
 
-int main()
+int main() 
 {
-    int n, i, x, k1, k2, k3;
-    list a; // можно было как указатель и тогда далее использовать вез оперсанда
-    node* b;
-    init(&a);
-
+    int n; 
     scanf("%d", &n);
-    for (i=1; i<=n; i++)
+    list *l = NULL; 
+    l = malloc(sizeof(list));
+    init(l);
+    
+    int i, a;
+    for (i = 0; i < n; i++) 
     {
-        scanf("%d", &x);
-        push_back(&a, x);
+        scanf("%d", &a);
+        push_back(l, a);
     }
-    print(&a);
-
+    print(l);
+    
+    int k1, k2, k3, b;
     scanf("%d %d %d", &k1, &k2, &k3);
-    b = find(&a, k1); // поиск
-    if (b != NULL)
-    {
-        k1 = 1;
-    }
-    else
-    {
-        k1 = 0;
-    }
-    b = find(&a, k2);
-    if (b != NULL)
-    {
-        k2 = 1;
-    }
-    else
-    {
-        k2 = 0;
-    }
-    b = find(&a, k3);
-    if (b != NULL)
-    {
-        k3 = 1;
-    }
-    else
-    {
-        k3 = 0;
-    }
+    b = find(l, k1);
+    if (b != NULL) k1 = 1; else k1 = 0;
+    b = find(l, k2);
+    if (b != NULL) k2 = 1; else k2 = 0;
+    b = find(l, k3);
+    if (b != NULL) k3 = 1; else k3 = 0;
     printf("%d %d %d\n", k1, k2, k3);
-
-    scanf("%d", &x);
-    push_back(&a, x);
-    print(&a);
-
-    scanf("%d", &x);
-    push_front(&a, x);
-    print(&a);
-
-    scanf("%d %d", &n, &x);
-    node *fn = ind_f(&a, n - 1);
-    insert_after(fn, x);
-    print(&a);
-
-    scanf("%d", &x);
-    remove_node(&a, x);
-    print(&a);
-
-    clean(&a);
-
+    
+    int m; 
+    scanf("%d", &m);
+    push_back(l, m);
+    print_invers(l);
+    
+    int t;
+    scanf("%d", &t);
+    push_front(l, t);
+    print(l);
+    
+    int j, x; 
+    scanf("%d %d", &j, &x);
+    node *Node = l -> head;
+    for (i = 1; i < j; i++) Node = Node -> next;
+    insert_after(l, Node, x);
+    print_invers(l);
+    
+    int u, y;
+    scanf("%d %d", &u, &y);
+    Node = l->head;
+    for (i = 1; i < u; i++) Node = Node -> next;
+    insert_before(l, Node, y);
+    print(l);
+    
+    int z; 
+    scanf("%d", &z);
+    remove_first(l, z);
+    print_invers(l);
+    
+    int r;
+    scanf("%d", &r);
+    remove_last(l, r);
+    print(l);
+    
+    clean(l);
+    
     return 0;
 }
-
